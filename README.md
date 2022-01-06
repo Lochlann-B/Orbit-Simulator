@@ -15,3 +15,5 @@ Can randomly generate solar systems, and modify the properties of each of the pl
 **Space** - Pauses/Unpauses the simulation
 
 **G** - Generates a new system
+
+**Enter** - Submit entered text (when modifying a planet's property, or when entering the name of a system for saving/loading)
