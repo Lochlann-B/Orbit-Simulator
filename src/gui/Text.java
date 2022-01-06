@@ -11,7 +11,6 @@ public class Text {
 	private int size = 1;
 	private int xPos;
 	private int yPos;
-	private long vg;
 	private Vector4f colour;
 	private NVGColor VgColour;
 	private Panel parent;
@@ -26,7 +25,6 @@ public class Text {
 	public Text(int xPos, int yPos, int font, Vector4f colour, int size, long context) {
 		this.font = font;
 		this.size = size;
-		vg = context;
 		VgColour = NVGColor.create();
 		VgColour.r(colour.x);
 		VgColour.g(colour.y);
@@ -37,7 +35,7 @@ public class Text {
 		this.yPos = yPos;
 	}
 	
-	public Text(float xProp, float yProp, int font, Vector4f colour, int size, long context, Panel parent, float hProp, float vProp) {
+	public Text(float xProp, float yProp, int font, Vector4f colour, int size, Panel parent, float hProp, float vProp) {
 		this.xProp = xProp;
 		this.yProp = yProp;
 		this.parent = parent;
@@ -46,7 +44,6 @@ public class Text {
 		horizontalPaddingProportion = hProp;
 		verticalPaddingProportion = vProp;
 		this.font = font;
-		vg = context;
 		VgColour = NVGColor.create();
 		VgColour.r(colour.x);
 		VgColour.g(colour.y);
@@ -59,7 +56,6 @@ public class Text {
 		font = t.getFont();
 		size = t.getSize();
 		VgColour = t.getVgColour();
-		vg = t.getContext();
 		string = "";
 		xPos = t.getPos()[0];
 		xPos = t.getPos()[1];
@@ -111,8 +107,8 @@ public class Text {
 		VgColour.a(colour.w);
 	}
 	
-	//Method for drawing text
 	public void drawText() {
+		long vg = Gui.vg;
 		
 		NanoVG.nvgFontFaceId(vg, font);
 		NanoVG.nvgFillColor(vg, VgColour);
@@ -135,10 +131,6 @@ public class Text {
 	
 	public NVGColor getVgColour() {
 		return VgColour;
-	}
-	
-	public long getContext() {
-		return vg;
 	}
 	
 	public void setxProp(float x) {
@@ -171,6 +163,14 @@ public class Text {
 	
 	public void setDivisions(int num) {
 		divisions = num;
+	}
+	
+	public int getxPos() {
+		return xPos;
+	}
+	
+	public int getyPos() {
+		return yPos;
 	}
 	
 		//Resize method

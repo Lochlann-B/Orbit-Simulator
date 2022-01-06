@@ -3,12 +3,16 @@ package gui;
 import org.lwjgl.nanovg.NanoVGGL3;
 import org.lwjgl.nanovg.NVGColor;
 import org.lwjgl.nanovg.NanoVG;
+
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
 
 import app.Planet;
+import app.PlanetBehaviour;
+import app.SimulationSpeed;
 import maths.Vector4f;
 import opengl.Window;
 import util.LoadSystem;
@@ -17,11 +21,8 @@ import util.SaveSystem;
 
 public class Gui {
 	
-	private long vg;
+	public static final long vg = NanoVGGL3.nvgCreate(NanoVGGL3.NVG_ANTIALIAS | NanoVGGL3.NVG_STENCIL_STROKES);;
 	private int font;
-	
-	private String inputString = "";
-	private char inputChar;
 	
 	private ArrayList<Panel> panels;
 	
@@ -47,15 +48,18 @@ public class Gui {
 	
 	private Button selectedButton;
 	
-	private float speedVal;
+	private float speedVal = 1.0f;
+	
+	private ArrayList<Planet> planetList;
+	private PlanetBehaviour planetBehaviour;
 	
 	public Gui() {
 	}
 	
-	public void init(Window window) throws Exception {
+	public void init(Window window, ArrayList<Planet> planetList, PlanetBehaviour planetBehaviour) throws Exception {
 		panels = new ArrayList<Panel>();
+		this.planetBehaviour = planetBehaviour;
 		
-		this.vg = NanoVGGL3.nvgCreate(NanoVGGL3.NVG_ANTIALIAS | NanoVGGL3.NVG_STENCIL_STROKES);
 		if(vg == MemoryUtil.NULL) {
 			throw new Exception("Could not create nanoVG context!");
 		}
@@ -71,6 +75,8 @@ public class Gui {
 		VgColour.b(1.0f);
 		VgColour.a(0.8f);
 		
+		this.planetList = planetList; 
+		
 		setupPlanetInfo(window, planetInfoArray, planetButtonArray);
 		setupAddRemovePanel(window);
 		setupSpeedPanel(window);
@@ -80,50 +86,72 @@ public class Gui {
 	}
 	
 	private void setupTextBoxPanel(Window window) {
-		textBox = new Panel(0.4f, 0.4f, 0.2f, 0.2f, new Vector4f(0.584f, 0f, 1.0f, 0.8f), vg, window);
+		textBox = new Panel(0.4f, 0.4f, 0.2f, 0.2f, new Vector4f(0.584f, 0f, 1.0f, 0.8f), window);
 		textBox.setHidden(true);
-		Button textInput = new Button(0,0, 0.8f, 0.3f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, textBox);
+		TextInputButton textInput = new TextInputButton(0,0, 0.8f, 0.3f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), textBox, () -> {});
 		textInput.sethCentered(true);
 		textInput.setvCentered(true);
-		textInput.setEnterTex(true);
 		textInput.setDivisions(5);
 		textInput.setDefaultText("Enter system name: ");
-		textInput.setText(new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, vg, textBox, 0.2f, 0));
+		textInput.setText(new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, textBox, 0.2f, 0));
 		textInput.resize();
 		textInput.setNumericOnly(false);
 		textBox.addButton(textInput);
 		
-		Button cancel = new Button((float)(textInput.getxPos()-textBox.getxPos())/(float)textBox.getWidth(), 0.7f, 0.3f, 0.15f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, textBox);
-		cancel.setText(new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, vg, textBox, 0.2f, 0));
+		Button cancel = new Button((float)(textInput.getxPos()-textBox.getxPos())/(float)textBox.getWidth(), 0.7f, 0.3f, 0.15f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), textBox, 
+				() -> textBox.setHidden(true)
+				);
+		cancel.setText(new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, textBox, 0.2f, 0));
 		cancel.setTextToButton(true);
 		cancel.setDefaultText("cancel");
 		cancel.centerText(true);
 		cancel.resize();
-		cancel.setPurpose('c');
 		textBox.addButton(cancel);
 		
-		saveLoad = new Button((float)(textInput.getxPos()-textBox.getxPos())/(float)textBox.getWidth(), 0.7f, 0.3f, 0.15f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, textBox);
-		saveLoad.setText(new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, vg, textBox, 0.2f, 0));
+		saveLoad = new Button((float)(textInput.getxPos()-textBox.getxPos())/(float)textBox.getWidth(), 0.7f, 0.3f, 0.15f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), textBox, () -> {});
+		saveLoad.setText(new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, textBox, 0.2f, 0));
 		saveLoad.setTextToButton(true);
 		saveLoad.setDefaultText(" ");
 		saveLoad.fromhEdge(true);
 		saveLoad.centerText(true);
 		saveLoad.resize();
+		saveLoad.setClickEvent(() -> {
+			if(saveLoad.getText().getText().contentEquals("save")) {
+				String system = textBox.getTextInputButtons().get(0).getEnteredText();
+				if(system.length() > 0) {
+					SaveSystem.saveSystem(system, planetList);
+				}
+			}
+			else {
+				int status = loadSystem(planetList);
+				hideTextBox(status == 0 ? true : false);
+				SimulationSpeed.setPauseStatus(true);
+			}
+		});
 		textBox.addButton(saveLoad);
 		
 		panels.add(textBox);
 	}
 	
 	private void setupSystemSavePanel(Window window) {
-		loadSave = new Panel(0f, 0f, 1f, 0.05f, new Vector4f(0.584f, 0f, 1.0f, 0.8f), vg, window);
+		loadSave = new Panel(0f, 0f, 1f, 0.05f, new Vector4f(0.584f, 0f, 1.0f, 0.8f), window);
 		loadSave.setHidden(false);
-		save = new Button(0.017f,0.1f,0.05f,0.8f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, loadSave);
+		save = new Button(0.017f,0.1f,0.05f,0.8f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), loadSave, 
+				() -> {	
+					setSaveLoadText("save");
+					textBox.setHidden(false);
+				});
 		save.setvCentered(true);
 		save.setDefaultText("Save");
-		save.setPurpose('k');
-		save.setText(new Text(0.1f,0.9f,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 32, vg, loadSave, 0f, 0f));
+		save.setText(new Text(0.1f,0.9f,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 32, loadSave, 0f, 0f)); 
 		load = new Button(save);
-		load.setText(new Text(0.1f,0.9f,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 32, vg, loadSave, 0f, 0f));
+		load.setClickEvent(() -> 
+		{
+			setSaveLoadText("load");
+			textBox.setHidden(false);
+		}
+				);
+		load.setText(new Text(0.1f,0.9f,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 32, loadSave, 0f, 0f));
 		load.setvCentered(true);
 		load.setDefaultText("Load");
 		load.setCopyButton(save);
@@ -134,7 +162,6 @@ public class Gui {
 		load.setWidthProp(0);
 		load.setHeightProp(0);
 		load.centerText(true);
-		load.setPurpose('l');
 		save.centerText(true);
 		load.setTextToButton(true);
 		save.setTextToButton(true);
@@ -148,10 +175,10 @@ public class Gui {
 	}
 	
 	private void setupSpeedPanel(Window window) {
-		speed = new Panel(0.85f, 0.05f, 0.15f, 0.15f, new Vector4f(0.584f, 0f, 1.0f, 0.6f), vg, window);
+		speed = new Panel(0.85f, 0.05f, 0.15f, 0.15f, new Vector4f(0.584f, 0f, 1.0f, 0.6f), window);
 		speed.setHidden(false);
-		speedText = new Text(0.1f,0.9f,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 32, vg, speed, 0.05f, 0f);
-		playPause = new Button(0,0.2f,0.2f,0.4f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, speed);
+		speedText = new Text(0.1f,0.9f,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 32, speed, 0.05f, 0f);
+		playPause = new Button(0,0.2f,0.2f,0.4f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), speed, () -> {SimulationSpeed.togglePause();});
 		playPause.sethCentered(true);
 		playPause.centerText(true);
 		playPause.setSquare(true);
@@ -159,11 +186,15 @@ public class Gui {
 		Text playPauseText = new Text(speedText);
 		playPause.setText(playPauseText);
 		playPause.setDefaultText(">");
-		playPause.setPurpose(' ');
 		playPause.resize();
 		speed.addButton(playPause);
 		
-		fastForward = new Button(0.1f, 0.2f, 0.2f, 0.4f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, speed);
+		fastForward = new Button(0.1f, 0.2f, 0.2f, 0.4f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), speed, () -> 
+		{
+			SimulationSpeed.setSpeed(SimulationSpeed.getSpeed() + 0.1f);
+			setSpeed(SimulationSpeed.getSpeed());
+		}
+		);
 		fastForward.setSquare(true);
 		fastForward.fromhEdge(true);
 		Text ffText = new Text(speedText);
@@ -171,21 +202,21 @@ public class Gui {
 		fastForward.setDefaultText(">>");
 		fastForward.setTextToButton(true);
 		fastForward.centerText(true);
-		fastForward.setPurpose('f');
 		fastForward.resize();
 		speed.addButton(fastForward);
 		
-		slowDown = new Button(0.1f, 0.2f, 0.2f, 0.4f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, speed);
+		slowDown = new Button(0.1f, 0.2f, 0.2f, 0.4f, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), speed, () -> {
+			SimulationSpeed.setSpeed(SimulationSpeed.getSpeed() - 0.1f); setSpeed(SimulationSpeed.getSpeed());
+			});
 		slowDown.setSquare(true);
 		Text ssText = new Text(speedText);
 		slowDown.setText(ssText);
 		slowDown.setDefaultText("<<");
 		slowDown.setTextToButton(true);
 		slowDown.centerText(true);
-		slowDown.setPurpose('s');
 		slowDown.resize();
 		
-		speedText.setText("Simulation speed: " + Float.toString(speedVal));
+		speedText.setText("Simulation Speed: " + Float.toString(speedVal));
 		speedText.setDivisions(1);
 		speedText.resize();
 		speed.addText(speedText);
@@ -194,11 +225,11 @@ public class Gui {
 	}
 	
 	private void setupAddRemovePanel(Window window) {
-		addRemove = new Panel(0.85f, 0.92f, 0.15f, 0.08f, new Vector4f(0.584f, 0f, 1.0f, 0.6f), vg, window);
+		addRemove = new Panel(0.85f, 0.92f, 0.15f, 0.08f, new Vector4f(0.584f, 0f, 1.0f, 0.6f), window);
 		addRemove.setHidden(false);
 		
-		removeAdd = new Button(0,0,0,0, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, addRemove);
-		addRemoveText = new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, vg, addRemove, 0.2f, 0);
+		removeAdd = new Button(0,0,0,0, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), addRemove, () -> {});
+		addRemoveText = new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, addRemove, 0.2f, 0);
 		
 		Button remove = new Button(removeAdd);
 		remove.setxProp(0.6f);
@@ -213,7 +244,9 @@ public class Gui {
 		remove.setvCentered(true);
 		remove.centerText(true);
 		remove.resize();
-		remove.setPurpose('w');
+		remove.setClickEvent(() -> {
+			planetBehaviour.remove();
+		});
 		addRemove.addButton(remove);
 		
 		Button add = new Button(remove);
@@ -231,22 +264,23 @@ public class Gui {
 		add.setTextPos();
 		add.setvCentered(true);
 		add.centerText(true);
-		add.setPurpose('q');
-		
+		add.setClickEvent(() -> {
+			planetBehaviour.addNewPlanet();
+		});
 		add.setTextToButton(true);
 		add.resize();
 		addRemove.addButton(add);
-		
 
 		panels.add(addRemove);
 	}
-	
-	private void setupPlanetInfo(Window window, String[] planetInfoArray, char[] planetButtonArray) {
-		planetInfo = new Panel(0f, 0.05f, 0.15f, 0.95f, new Vector4f(0.584f, 0f, 1.0f, 0.6f), vg, window);
-		planetInfo.setHidden(true);
-		infoButton = new Button(0,0, 0, 0, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), vg, planetInfo);
-		infoText = new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, vg, planetInfo, 0.2f, 0);
 		
+	private void setupPlanetInfo(Window window, String[] planetInfoArray, char[] planetButtonArray) {
+		planetInfo = new Panel(0f, 0.05f, 0.15f, 0.95f, new Vector4f(0.584f, 0f, 1.0f, 0.6f), window);
+		planetInfo.setHidden(true);
+		infoButton = new TextInputButton(0,0, 0, 0, new Vector4f(1.0f, 1.0f, 1.0f, 0.5f), planetInfo, () -> {});
+		infoText = new Text(0,0,font, new Vector4f(1.0f, 0.769f, 0.863f, 1.0f), 1, planetInfo, 0.2f, 0);
+
+		//Add button descriptors next to button
 		for(int i = 0; i < planetInfoArray.length; i++) {
 			Text temp = new Text(infoText);
 			temp.setxProp(0.1f);
@@ -257,16 +291,20 @@ public class Gui {
 			planetInfo.addText(temp);
 		}
 		
+		// Place planet attribute buttons next to text
 		for(int i = 0; i < planetButtonArray.length; i++) {
 			int k = (i > 7) ? 7 : i;
-			Button tempButton = new Button(infoButton);
+			TextInputButton tempButton = new TextInputButton(infoButton);
 			if(i < 8) {
 				tempButton.setxProp(planetInfo.getText().get(k).getxProp());
 				tempButton.setyProp(planetInfo.getText().get(k).getyProp() + 0.02f); //+ (float) mass.getSize()/ (float) planetInfo.getHeight());
 				tempButton.setWidthProp(0.7f);
 				tempButton.setHeightProp(0.1f);
+				if(i == 4)
+					tempButton.setClickEvent(() -> {});
 			}
 			else {
+				//Place colour buttons beneath the first one
 				tempButton.setCopyButton(planetInfo.getButtons().get(7));
 				tempButton.relativeDimensions(true);
 				tempButton.relativePos(true);
@@ -277,19 +315,90 @@ public class Gui {
 			tempButton.setDivisions(24);
 			tmp1.setText("test");
 			tempButton.setText(tmp1);
-			if(i != 4)
-				tempButton.setEnterTex(true);
-			tempButton.setPurpose(planetButtonArray[i]);
 			tempButton.setNumericOnly(true);
 			tempButton.resize();
+			
+			//Change the property descriptor text so it matches the names of the fields of the body class - used to set values later
+			String planetAttribute = planetInfoArray[k].substring(0, planetInfoArray[k].length() - 2).toLowerCase();
+			
+			//Set callback events - change properties of planet
+			if(i != 4 && i < 7) {
+				tempButton.setClickEvent(() -> 
+				{
+					String value = tempButton.getEnteredText();
+					value = sanitiseInputText(value);
+					float val = Float.parseFloat(value);
+					Planet selectedPlanet = planetBehaviour.getSelectedPlanet();
+					Class<?> body = (selectedPlanet.getClass()).getSuperclass();
+					try {
+						Field field = body.getDeclaredField(planetAttribute);
+						field.setAccessible(true);
+						field.set(selectedPlanet, val == -1 ? field.get(selectedPlanet) :  val);
+					} catch (NoSuchFieldException e) {
+						if(planetAttribute.charAt(0) == 's') {
+							selectedPlanet.getAppItem().setScale(val == -1 ? selectedPlanet.getAppItem().getScale() : val);
+						}
+						else {
+							e.printStackTrace();
+						}
+						
+					} catch (SecurityException | IllegalAccessException e) {
+						e.printStackTrace();
+					}	
+				});
+			}
+			
+			//Change the colour of the planet - it's ugly, but no other way to do it other than changing body and appitem!
+			switch(i) {
+			case 7:
+				tempButton.setClickEvent(() -> {
+					String value = tempButton.getEnteredText();
+					value = sanitiseInputText(value);
+					float val = Float.parseFloat(value);
+					Planet selectedPlanet = planetBehaviour.getSelectedPlanet();
+					selectedPlanet.getAppItem().setRed(val == -1 ? selectedPlanet.getAppItem().getRed() : val);
+				});
+				break;
+			case 8:
+				tempButton.setClickEvent(() -> {
+					String value = tempButton.getEnteredText();
+					value = sanitiseInputText(value);
+					float val = Float.parseFloat(value);
+					Planet selectedPlanet = planetBehaviour.getSelectedPlanet();
+					selectedPlanet.getAppItem().setGreen(val == -1 ? selectedPlanet.getAppItem().getGreen() : val);
+				});
+				break;
+			case 9:
+				tempButton.setClickEvent(() -> {
+					String value = tempButton.getEnteredText();
+					value = sanitiseInputText(value);
+					float val = Float.parseFloat(value);
+					Planet selectedPlanet = planetBehaviour.getSelectedPlanet();
+					selectedPlanet.getAppItem().setBlue(val == -1 ? selectedPlanet.getAppItem().getBlue() : val);
+				});
+				break;
+			}
+			
 			planetInfo.addButton(tempButton);
 		}
-		
-		
 		panels.add(planetInfo);
 	}
 	
+	private String sanitiseInputText(String value) {
+		//If no text is input, revert to original value
+		if(value.isEmpty())
+			value = "-1";
+		else if(value.charAt(value.length()-1) == '.') {
+			value = value + '0';
+		}
+		else if(value.contentEquals(" "))
+			value = "0";
+		return value;
+	}
+	
 	public void setPlanetInfo(Planet p) {
+		
+		//All of the planet's properties are displayed on their respective buttons
 		
 		String[] planArray = {
 				Double.toString((double) Math.round(p.getMass()*10000)/10000),
@@ -313,6 +422,7 @@ public class Gui {
 	}
 	
 	public void render(Window window) {
+		//Every item of text and every button is held in a panel, and the render method of each panel renders all of its items as well
 		for(int i=0; i < panels.size(); i++) {
 			if(!panels.get(i).isHidden())
 				panels.get(i).render(window);
@@ -325,6 +435,7 @@ public class Gui {
 	}
 	
 	public boolean checkMouseCoords(int mouseX, int mouseY) {
+		//Checks if the mouse is on a panel
 		for(Panel p : panels) {
 			if(mouseX >= p.getxPos() && mouseX <= p.getxPos() + p.getWidth() && mouseY >= p.getyPos() && mouseY <= p.getyPos() + p.getHeight() && !p.isHidden()) {
 				return true;
@@ -333,41 +444,7 @@ public class Gui {
 		return false;
 	}
 	
-	String numeric = "1234567890.";
-	String file = "/:.*?<>|\\";
-	boolean containsDecimal;
-	
-	public void setString(char key) {
-		inputChar = key;
-		inputString = inputString + key;
-		if(selectedButton != null && selectedButton.enterText()) {
-			if(selectedButton.numericOnly() && stringContains(numeric, key))
-				selectedButton.updateText(inputChar);
-			else if (!selectedButton.numericOnly() && !stringContains(file, key)){
-				selectedButton.updateText(inputChar);
-			}
-		}
-	}
-	
-	public void removeChar() {
-		inputString = selectedButton.getEnteredText();
-		if(inputString.length() > 0)
-			inputString = inputString.substring(0, inputString.length()-1);
-		if(selectedButton != null && selectedButton.enterText())
-			selectedButton.setEnteredText(inputString);
-	}
-	
-	private boolean stringContains(String s, char c) {
 
-		for(int i = 0; i < s.length(); i++) {
-			if(s.charAt(i) == c && (!(containsDecimal && c == '.') )) {
-				if(c == '.')
-					containsDecimal = true;
-				return true;
-			}
-		}
-		return false;
-	}
 	
 	public ArrayList<Panel> getPanels() {
 		return panels;
@@ -388,60 +465,6 @@ public class Gui {
 		return selectedButton;
 	}
 	
-	public void setContainsDecimal(boolean b) {
-		containsDecimal = b;
-	}
-	
-	public void updateValues(Planet selectedPlanet) {
-		char p = selectedButton.getPurpose();
-		String value = selectedButton.getEnteredText();
-		if(selectedPlanet != null) {
-			if(selectedButton.numericOnly()) {
-				if(value.isEmpty())
-					value = "-1";
-				else if(value.charAt(value.length()-1) == '.') {
-					value = value + '0';
-				}
-				else if(value.contentEquals(" "))
-					value = "0";
-				
-			}
-			double val = Double.parseDouble(value);
-			switch(p) {
-				case(' '):
-					break;
-				case('m'):
-					selectedPlanet.setMass(val == -1 ? selectedPlanet.getMass() : val);
-					break;
-				case('e'):
-					selectedPlanet.setEccentricity((float) val == -1 ? selectedPlanet.getEccentricity() : ((float) val >= 0.9f ? 0.9f : (float) val));
-					break;
-				case('p'):
-					selectedPlanet.setPerihelion(val == -1 ? selectedPlanet.getPerihelion() : (val <= 0 ? 10 :  val));
-					break;
-				case('a'):
-					selectedPlanet.setAphelion(val == -1 ? selectedPlanet.getAphelion() : (val <= 0 ? 10 :  val));
-					break;
-				case('c'):
-					selectedPlanet.getAppItem().setScale((float) (val == -1 ? selectedPlanet.getAppItem().getScale() : val));
-					break;
-				case('z'):
-					selectedPlanet.setAngle(Math.toRadians((val == -1 ? Math.toDegrees(selectedPlanet.getAngle()) : val)));
-					break;
-				case('r'):
-					selectedPlanet.getAppItem().setColour((float) (val == -1 ? selectedPlanet.getAppItem().getColour().x : val), selectedPlanet.getAppItem().getColour().y, selectedPlanet.getAppItem().getColour().z);
-					break;
-				case('g'):
-					selectedPlanet.getAppItem().setColour(selectedPlanet.getAppItem().getColour().x, (float) (val == -1 ? selectedPlanet.getAppItem().getColour().y : val), selectedPlanet.getAppItem().getColour().z);
-					break;
-				case('b'):
-					selectedPlanet.getAppItem().setColour(selectedPlanet.getAppItem().getColour().x, selectedPlanet.getAppItem().getColour().y, (float) (val == -1 ? selectedPlanet.getAppItem().getColour().z : val));
-					break;
-			}
-		}
-		inputString= "";
-	}
-	
 	public void setSpeed(float f) {
 		speedVal = f;
 		speedText.setText("Simulation Speed: " + Float.toString((float) Math.round(f*10)/10));
@@ -451,25 +474,29 @@ public class Gui {
 		textBox.setHidden(b);
 	}
 	
-	public void setSaveLoadText(String s, char p) {
+	public void setSaveLoadText(String s) {
 		saveLoad.setDefaultText(s);
 		saveLoad.setTextPos();
-		saveLoad.setPurpose(p);
 	}
 	
 	public void saveSystem(ArrayList<Planet> pList) {
-		String system = textBox.getButtons().get(0).getEnteredText();
+		String system = textBox.getTextInputButtons().get(0).getEnteredText();
 		if(system.length() > 0) {
 			SaveSystem.saveSystem(system, pList);
 		}
 	}
 	
 	public int loadSystem(ArrayList<Planet> pList) {
-		String system = textBox.getButtons().get(0).getEnteredText();
+		//Status message - if -1, then then load failed, so do not exit the load window
+		String system = textBox.getTextInputButtons().get(0).getEnteredText();
 		if(system.length() > 0) {
 			return LoadSystem.loadSystem(system, pList, pList.get(0).getAppItem().getMesh());
 		}
 		return -1;
+	}
+	
+	public void hidePlanetInfo() {
+		planetInfo.setHidden(true);
 	}
 	
 	public void drawEllipse(float xAxis, float yAxis, float cx, float cy, float angle) {
@@ -494,5 +521,5 @@ public class Gui {
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		GL11.glDisable(GL11.GL_BLEND);	
 	}
-	
+		
 }

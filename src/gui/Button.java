@@ -6,50 +6,48 @@ import org.lwjgl.nanovg.NanoVG;
 import maths.Vector4f;
 import opengl.Window;
 
+
+
 public class Button {
 	
-	private int xPos;
-	private int yPos;
-	private int width;
-	private int height;
+	protected ClickEvent event;
 	
-	private float xProp;
-	private float yProp;
-	private float widthProp;
-	private float heightProp;
-	private int vPadding = 0;
-	private int hPadding = 0;
-	private Panel parent;
-	private int divisions = 1;
-	private boolean vCentered = false;
-	private boolean hCentered = false;
-	private boolean textToButton = false;
-	private boolean centerText = false;
-	private boolean square = false;
-	private boolean sethPropFromEdge = false;
-	private boolean setvPropFromEdge = false;
-	private boolean relativePos = true;
-	private boolean relativeDimensions = true;
-	private char purpose = '.';
+	protected int xPos;
+	protected int yPos;
+	protected int width;
+	protected int height;
 	
-	private String enteredText = "";
-	private String defaultText = " ";
-	private boolean enterText = false;
-	private boolean numericOnly = true;
+	protected float xProp;
+	protected float yProp;
+	protected float widthProp;
+	protected float heightProp;
+	protected int vPadding = 0;
+	protected int hPadding = 0;
+	protected Panel parent;
+	protected int divisions = 1;
+	protected boolean vCentered = false;
+	protected boolean hCentered = false;
+	protected boolean textToButton = false;
+	protected boolean centerText = false;
+	protected boolean square = false;
+	protected boolean sethPropFromEdge = false;
+	protected boolean setvPropFromEdge = false;
+	protected boolean relativePos = true;
+	protected boolean relativeDimensions = true;
 	
-	private Button copyButton;
+	protected String defaultText = " ";
 	
-	private Text text;
+	protected Button copyButton;
 	
-	private boolean isPressed;
+	protected Text text;
 	
-	private Vector4f colour;
+	protected boolean isPressed;
 	
-	private NVGColor VgColour;
+	protected Vector4f colour;
 	
-	private long vg;
+	protected NVGColor VgColour;
 	
-	public Button(float xProp, float yProp, float widthProp, float heightProp, Vector4f colour, long context, Panel parent) {
+	public Button(float xProp, float yProp, float widthProp, float heightProp, Vector4f colour, Panel parent, ClickEvent e) {
 		this.xProp = xProp;
 		this.yProp = yProp;
 		this.widthProp = widthProp;
@@ -62,7 +60,7 @@ public class Button {
 		VgColour.g(colour.y);
 		VgColour.b(colour.z);
 		VgColour.a(colour.w);
-		vg = context;
+		event = e;
 	}
 	
 	public Button(Button b) {
@@ -72,7 +70,6 @@ public class Button {
 		height = b.getHeight();
 		VgColour = b.getVgColour();
 		parent = b.getParent();
-		vg = b.getContext();
 	}
 	
 	//Method for colour of text
@@ -145,7 +142,7 @@ public class Button {
 	}
 	
 	public void setTextPos() {
-		String string = isPressed && enterText ? enteredText : defaultText;
+		String string = defaultText;
 		text.setText(string.length() == 0 ? " " : string);
 
 		if(!textToButton) {
@@ -165,37 +162,32 @@ public class Button {
 		}
 		else {
 			text.setPos(xPos + width/16, yPos + 3*text.getSize()/4);
-			
 		}
 	}
 	
+	public void setClickEvent(ClickEvent e) {
+		event = e;
+	}
+	
 	//Method for checking whether the button has been clicked (mouse click && mouse coords are within button) - called when glfw callback
-	public char checkClicked(int mouseX, int mouseY) {
+	public void checkClicked(int mouseX, int mouseY) {
 		
 		if(mouseX >= xPos && mouseX <= xPos + width && mouseY >= yPos && mouseY <= yPos + height) {
 			//Change this into something less cringe please
 			isPressed = true;
-			if(enterText) {
-				enteredText = "";
-				setTextPos();
-			}
-			return purpose;
-			
+			event.clickEvent();
 			
 		} else {
 			isPressed = false;
 			
 		}
-		return '.';
 	}
 	
-
-	
-	//Method for rendering
 	public void render(Window window) {
 		if(text != null) {
-			text.drawText();
+			text.drawText();;
 		}
+		long vg = Gui.vg;
 		NanoVG.nvgBeginFrame(vg, window.getWidth(), window.getHeight(), 1);
 		NanoVG.nvgBeginPath(vg);
 		NanoVG.nvgRect(vg, xPos, yPos, width, height);
@@ -221,9 +213,6 @@ public class Button {
 	}
 	public NVGColor getVgColour() {
 		return VgColour;
-	}
-	public long getContext() {
-		return vg;
 	}
 	public Text getText() {
 		return text;
@@ -304,50 +293,12 @@ public class Button {
 		return isPressed;
 	}
 	
-	public void setEnteredText(String s) {
-		enteredText = s;
-		setTextPos();
-	}
-	
-	public String getEnteredText() {
-		return enteredText;
-	}
-	
-	public void setEnterTex(boolean b) {
-		enterText = b;
-	}
-	
-	public boolean enterText() {
-		return enterText;
-	}
-	
-	public void updateText(char character) {
-		enteredText = enteredText + character;
-		setTextPos();
-	}
-	
 	public void setDefaultText(String s) {
 		defaultText = s;
 	}
 	
 	public String getDefaultText() { 
 		return defaultText;
-	}
-	
-	public boolean numericOnly() {
-		return numericOnly;
-	}
-	
-	public void setNumericOnly(boolean b) {
-		numericOnly = b;
-	}
-	
-	public void setPurpose(char p) {
-		purpose = p;
-	}
-	
-	public char getPurpose() {
-		return purpose;
 	}
 	
 	public void setSquare(boolean b) {

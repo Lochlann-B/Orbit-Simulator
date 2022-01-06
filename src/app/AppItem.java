@@ -43,6 +43,30 @@ public class AppItem {
 		useColour = 1;
 	}
 	
+	public void setRed(float r) {
+		colour.x = r;
+	}
+	
+	public float getRed() {
+		return colour.x;
+	}
+	
+	public float getGreen() {
+		return colour.y;
+	}
+	
+	public float getBlue() {
+		return colour.z;
+	}
+	
+	public void setGreen(float g) {
+		colour.y = g;
+	}
+	
+	public void setBlue(float b) {
+		colour.z = b;
+	}
+	
 	public void setTexture(Texture texture) {
 		mesh.setTexture(texture);
 		useColour = 0;

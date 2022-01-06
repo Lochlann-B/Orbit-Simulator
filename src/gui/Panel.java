@@ -14,6 +14,7 @@ public class Panel {
 	private ArrayList<Button> buttons;
 	private ArrayList<Text> textBoxes;
 	private ArrayList<Panel> subPanels;
+	private ArrayList<TextInputButton> textButtons;
 	
 	private boolean hidden = true;
 	
@@ -27,15 +28,13 @@ public class Panel {
 	private float xOffsetProportion;
 	private float yOffsetProportion;
 	
-	private long vg;
-	
 	private Vector4f colour;
 	
 	private NVGColor VgColour;
 	
 	
 	//Constructor (xPos, yPos, colour)
-	public Panel(float xProportion, float yProportion, float widthProportion, float heightProportion, Vector4f colour, long context, Window window) {
+	public Panel(float xProportion, float yProportion, float widthProportion, float heightProportion, Vector4f colour, Window window) {
 		xOffsetProportion = xProportion;
 		yOffsetProportion = yProportion;
 		this.widthProportion = widthProportion;
@@ -45,7 +44,6 @@ public class Panel {
 		this.width = (int) (widthProportion*window.getWidth());
 		this.height = (int) (heightProportion*window.getHeight());
 		this.colour = colour;
-		vg = context;
 		VgColour = NVGColor.create();
 		VgColour.r(colour.x);
 		VgColour.g(colour.y);
@@ -53,6 +51,7 @@ public class Panel {
 		VgColour.a(colour.w);
 		buttons = new ArrayList<Button>();
 		textBoxes = new ArrayList<Text>();
+		textButtons = new ArrayList<TextInputButton>();
 	}
 	
 	//Method for getting/setting colour
@@ -78,6 +77,9 @@ public class Panel {
 	//Method for adding/removing buttons, text boxes, panels
 	public void addButton(Button b) {
 		buttons.add(b);
+		if(b.getClass() == TextInputButton.class) {
+			textButtons.add((TextInputButton) b);
+		}
 	}
 	public void addText(Text t) {
 		textBoxes.add(t);
@@ -95,6 +97,7 @@ public class Panel {
 	//Method for rendering panel
 	//Method for accessing all buttons and text and rendering them
 	public void render(Window window) {
+		long vg = Gui.vg;
 		
 		NanoVG.nvgBeginFrame(vg, window.getWidth(), window.getHeight(), 1);
 		NanoVG.nvgBeginPath(vg);
@@ -157,5 +160,9 @@ public class Panel {
 	public void setPosition(int xPos, int yPos) {
 		this.xPos = xPos;
 		this.yPos = yPos;
+	}
+
+	public ArrayList<TextInputButton> getTextInputButtons() {
+		return textButtons;
 	}
 }

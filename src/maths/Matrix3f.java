@@ -55,22 +55,6 @@ public class Matrix3f {
 		return new Matrix3f(out);
 	}
 	
-	//Method for inverting
-	
-	//public Matrix4f getInverse() {
-	//	
-	//}
-	
-	//Method for getting projection matrix
-	
-	//public static Matrix4f getProjectionMatrix() {
-	//	
-	//}
-	
-	//Method for smtn else idr check transformation class for deets
-	
-	//Method for getting a transpose
-	
 	public Matrix3f getTranspose() {
 		//Reflect matrix by its leading diagonal
 		float[][] transpose = new float[3][3];
@@ -81,8 +65,6 @@ public class Matrix3f {
 		}
 		return new Matrix3f(transpose);
 	}
-	
-	//Method for getting a determinant
 	
 	public float getDeterminant() {
 		//Calculated by hand

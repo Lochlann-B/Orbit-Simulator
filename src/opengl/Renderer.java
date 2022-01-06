@@ -176,7 +176,6 @@ public class Renderer {
 					GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_LINE);
 					object.getMesh().render(object.getColourStatus());
 					GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, GL11.GL_FILL);
-					
 
 					drawEllipse(planet, projectionMatrix, worldMatrix, viewMatrix, planets, gui);
 					

@@ -27,7 +27,6 @@ public class Camera {
 	}
 	
 	public void offsetPosition(float x, float y, float z) {
-		//when you rewrite this future locky, make it so the camera is invariant about the z axis (no pitch).
 		if(z != 0 ) {
 			position.x += Math.sin(Math.toRadians(rotation.y))* -1f * z;
 			position.z += Math.cos(Math.toRadians(rotation.y)) * z;

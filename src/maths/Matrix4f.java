@@ -207,7 +207,6 @@ public class Matrix4f {
 		return m[0][0]*m00.getDeterminant() - m[0][1]*m01.getDeterminant() + m[0][2]*m02.getDeterminant() - m[0][3]*m03.getDeterminant();
 	}
 	
-	//Public method for getting a determinant (add only if needed)
 	
 	public void setMatrix(Matrix4f matrix) {
 		m = matrix.getArray().clone();

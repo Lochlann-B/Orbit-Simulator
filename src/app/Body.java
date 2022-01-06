@@ -1,5 +1,7 @@
 package app;
 
+import java.lang.reflect.Field;
+
 //import org.joml.Vector3f;
 import maths.Vector3f;
 
@@ -45,6 +47,22 @@ public class Body {
 			y += parent.getPosition().y;
 		}
 		item.setPosition((float) (x*Math.cos(angle) - y*Math.sin(angle)), (float) (y*Math.cos(angle) + x*Math.sin(angle)), 0f);
+	}
+	
+	public void setAttribute(double attribute, String attrName) {
+		Class<? extends Body> body = this.getClass();
+		try {
+			Field field = body.getField(attrName);
+			if (field.getType() == double.class) {
+				field.set(this, attribute);
+			}
+			else 
+			{
+				field.set(this, (float)attribute);
+			}
+		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchFieldException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void rotate(float speed) {
