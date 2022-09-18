@@ -1,3 +1,5 @@
+![orbit-sim-screenshot](https://user-images.githubusercontent.com/96309043/190881060-3791cb2b-fec7-47e0-a5c2-dc552bff59ab.png)
+
 # Orbit-Simulator
 Graphical elliptical orbit simulator written in LWJGL and OpenGL
 
